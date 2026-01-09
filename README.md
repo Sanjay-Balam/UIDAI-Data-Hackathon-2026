@@ -27,25 +27,27 @@
     *   *Analysis*: Identify "School Rush" spikes (June-Aug) and anomalies in `rejected` applications (if data permits) or extreme volume spikes.
 *   **Winning Argument**: "Static resources cannot solve dynamic problems. This Heatmap tells you exactly where to move 'Mobile Aadhaar Vans' *before* the queue starts."
 
-## Phase 2: Critical Improvements (The "Expert" Polish)
-Based on your feedback, we are adding a rigor layer:
+## Phase 3: Critical Remediation (The "Winning" Polish)
+Addressing the 9 Critical Issues identified in the Code Review:
 
-### 1. Data Hygiene (The Foundation)
-*   **Problem**: Garbage data (`?', '100000'`) and inconsistent spellings (`Ahmednagar` vs `Ahmadnagar`) skew results.
-*   **Fix**: Implement `normalize_districts()` function to clean string variations and drop numeric/invalid rows.
+### 1. Data Quality Overhaul (P0)
+*   **State Normalization**: Fix 15+ variations (`West Bengal`, `Odisha`, `Pondicherry`) using a strict mapping dictionary.
+*   **District Normalization**: Solve massive duplication (`Bengaluru` vs `Bangalore`, `North 24 Parganas` variations).
+*   **Garbage Removal**: Hard purge of `100000`, `?`, `5th cross`.
 
-### 2. Logic Correction (The CLCS Formula)
-*   **Problem**: Comparing `Bio Updates` (Age 5-17) to `New Enrolments` (Age 0-5) is a cohort mismatch.
-*   **Fix**: New Formula = `Bio Updates (5-17) / Total Child Activity (0-17)`. This represents the "Share of Children Vitality". Low share = Dormant/At-risk population.
+### 2. Methodological Correction (P0)
+*   **Fix CLCS Formula**: The current >490 ratios prove the logic flaw.
+    *   *New Method*: **Relative Benchmarking**. Compare a district's `BioUpdate / TotalActivity` ratio against the **National Average**.
+    *   *Z-Score Flagging*: Identify statistical outliers (Anomaly Detection).
 
-### 3. State-Level Intelligence
-*   **Problem**: District view is too granular for national policy.
-*   **Fix**: Aggregate `SPS` and `CRS` to the **State Level** to answer: "Which State is the biggest bottleneck?"
+### 3. Advanced Intelligence (P1/P2)
+*   **Seasonality Check**: Label "School Rush" (Jun-Aug) vs "Exam Season" in charts.
+*   **State Aggregation**: Generate a `state_summary.csv` for the India Map.
+*   **Weekend vs Weekday**: Analyze if centers are opening on Sundays (Operational Efficiency).
 
-### 4. Visual Impact
-*   **Additions**:
-    *   **India Choropleth**: State-wise heat map.
-    *   **Trend Compounding**: Time-series line charts to show growth velocity.
+### 4. Visual Impact (P1)
+*   **India Choropleth**: State-level heatmap is now mandatory using GeoJSON.
+*   **Trend Lines**: Add "Month-over-Month" growth curves.
 
 ## Technology Stack
 *   **Data Analysis**: Python (Pandas)
