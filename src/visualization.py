@@ -2,86 +2,115 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import os
+import json
+import urllib.request
 
 def generate_visualizations(base_path):
-    print("--- Generating Visualizations ---")
+    print("--- Generating Phase 2 Visualizations ---")
     
-    # Load analysis results
-    analysis_path = os.path.join(base_path, 'aadhaar_pulse_analysis.csv')
-    trends_path = os.path.join(base_path, 'aadhaar_pulse_monthly_trends.csv')
+    # Load Phase 2 Data
+    district_path = os.path.join(base_path, 'aadhaar_pulse_district.csv')
+    state_path = os.path.join(base_path, 'aadhaar_pulse_state.csv')
+    trends_path = os.path.join(base_path, 'aadhaar_pulse_trends.csv')
     
-    if not os.path.exists(analysis_path):
-        print("Analysis file not found.")
+    if not os.path.exists(district_path):
+        print("Analysis files not found. Run analysis.py first.")
         return
 
-    df = pd.read_csv(analysis_path)
-    trends = pd.read_csv(trends_path)
-    
-    # Filter out junk districts (e.g. "?", "100000") if any, based on quick look at head
-    df = df[~df['district'].isin(['?', '100000', '5th cross'])]
+    dist_df = pd.read_csv(district_path)
+    state_df = pd.read_csv(state_path)
+    trend_df = pd.read_csv(trends_path)
     
     output_dir = os.path.join(base_path, 'visualizations')
     os.makedirs(output_dir, exist_ok=True)
     
-    # --- Pillar 1: Service Pressure Score (SPS) ---
-    print("Generating SAI Charts...")
-    # Top 20 Districts with Highest Service Pressure
-    top_pressure = df.sort_values('sps_score', ascending=False).head(20)
+    # --- 1. India Map (State Level Choropleth) ---
+    print("Generating India Maps...")
+    # Using a public GeoJSON for India States
+    geojson_url = "https://gist.githubusercontent.com/jbrobst/56c13bbbf9d97d187fea01ca62ea5112/raw/e388c4cae20aa53cb5090210a42ebb9b765c0a36/india_states.geojson"
+    try:
+        with urllib.request.urlopen(geojson_url) as url:
+            india_states = json.loads(url.read().decode())
+    except:
+        print("Could not download GeoJSON. Skipping Maps.")
+        india_states = None
+
+    if india_states:
+        # Map 1: Service Pressure (SPS) by State
+        fig_map_sps = px.choropleth(
+            state_df,
+            geojson=india_states,
+            featureidkey='properties.ST_NM',
+            locations='state',
+            color='sps_score',
+            color_continuous_scale='Reds',
+            title='State-wise Service Pressure Score (SPS)',
+            template='plotly_dark'
+        )
+        fig_map_sps.update_geos(fitbounds="locations", visible=False)
+        fig_map_sps.write_html(os.path.join(output_dir, 'map_state_sps.html'))
+        
+        # Map 2: Child Compliance (CLCS) by State
+        # Invert color because High Compliance is Good (Green), Low is Bad (Red)
+        fig_map_clcs = px.choropleth(
+            state_df,
+            geojson=india_states,
+            featureidkey='properties.ST_NM',
+            locations='state',
+            color='clcs_score',
+            color_continuous_scale='RdYlGn', # Red to Green
+            title='State-wise Child Compliance Score (CLCS)',
+            template='plotly_dark'
+        )
+        fig_map_clcs.update_geos(fitbounds="locations", visible=False)
+        fig_map_clcs.write_html(os.path.join(output_dir, 'map_state_clcs.html'))
+
+    # --- 2. Trend Lines (Growth Velocity) ---
+    print("Generating Trend Charts...")
+    # Aggregate to National Level for a simple trend line
+    national_trend = trend_df.groupby('month')['volume'].sum().reset_index()
+    national_trend['month'] = national_trend['month'].astype(str)
     
-    fig_sps = px.bar(
-        top_pressure, 
-        x='district', 
-        y='sps_score',
-        color='total_volume',
-        title='Top 20 Districts by Service Accessibility Pressure (SAI)',
-        labels={'sps_score': 'Service Pressure Score (Txns / PIN)', 'district': 'District'},
+    fig_trend = px.line(
+        national_trend,
+        x='month',
+        y='volume',
+        markers=True,
+        title='National Aadhaar Activity Trend (Growth Velocity)',
+        labels={'volume': 'Total Transactions', 'month': 'Month'},
         template='plotly_dark'
     )
-    fig_sps.write_html(os.path.join(output_dir, 'sai_pressure_bar.html'))
+    fig_trend.write_html(os.path.join(output_dir, 'trend_national_velocity.html'))
     
-    # --- Pillar 2: Child Lifecycle Compliance Score (CLCS) ---
-    print("Generating CLCS Charts...")
-    # Scatter Plot: Enrolment Volume vs Compliance Ratio
-    # We want to find districts with High Enrolment (Right side) but Low Compliance (Bottom side) -> These are "Risk Zones"
+    # --- 3. District Leve Deep Dives (Improved) ---
+    print("Generating District Charts...")
     
-    # Filter for meaningful volume to avoid noise
-    significant_districts = df[df['child_enrols_0_5'] > 100] 
+    # Top 20 Pressure Districts (Bar)
+    top_pressure = dist_df.sort_values('sps_score', ascending=False).head(20)
+    fig_bar = px.bar(
+        top_pressure, x='district', y='sps_score', color='state',
+        title='Top 20 Districts: Critical Service Pressure',
+        template='plotly_dark'
+    )
+    fig_bar.write_html(os.path.join(output_dir, 'chart_district_sps_top20.html'))
     
-    fig_clcs = px.scatter(
-        significant_districts,
-        x='child_enrols_0_5',
-        y='compliance_ratio',
-        hover_name='district',
+    # Risk Scatter (CLCS vs Volume)
+    # Filter valid data
+    scatter_data = dist_df[(dist_df['total_child_activity'] > 500) & (dist_df['clcs_score'] < 1)]
+    fig_scatter = px.scatter(
+        scatter_data,
+        x='total_child_activity',
+        y='clcs_score',
+        size='child_enrols_0_5', # Bubble size = New Enrolments (Risk Scale)
         color='state',
-        title='Child Risk Map: Enrolment Volume vs Biometric Compliance',
-        labels={'child_enrols_0_5': 'New Child Enrolments (0-5)', 'compliance_ratio': 'Compliance Ratio (Updates/Enrols)'},
+        hover_name='district',
+        title='District Child Risk Map (Low Compliance vs High Activity)',
+        labels={'clcs_score': 'Compliance Share', 'total_child_activity': 'Total Child Volume'},
         template='plotly_dark'
     )
-    # Add lines to split quadrants?
-    fig_clcs.add_hline(y=1.0, line_dash="dash", annotation_text="Ideal Compliance")
-    fig_clcs.write_html(os.path.join(output_dir, 'clcs_risk_scatter.html'))
-    
-    # --- Pillar 3: Demand Intensity Heatmap (DIH) ---
-    print("Generating DIH Charts...")
-    # We need a matrix of District vs Month for Volume
-    # Let's pick Top 20 Districts by Total Volume for the Heatmap to keep it readable
-    top_vol_districts = df.sort_values('total_volume', ascending=False).head(20)['district'].tolist()
-    
-    heatmap_data = trends[trends['district'].isin(top_vol_districts)]
-    
-    # Pivot for heatmap
-    heatmap_matrix = heatmap_data.pivot(index='district', columns='month', values='volume')
-    heatmap_matrix = heatmap_matrix.fillna(0)
-    
-    fig_dih = px.imshow(
-        heatmap_matrix,
-        labels=dict(x="Month", y="District", color="Volume"),
-        title="Demand Intensity Heatmap (Top 20 Districts)",
-        template='plotly_dark',
-        aspect="auto"
-    )
-    fig_dih.write_html(os.path.join(output_dir, 'dih_heatmap.html'))
-    
+    fig_scatter.add_hline(y=0.3, line_dash="dash", annotation_text="Critical Risk Threshold")
+    fig_scatter.write_html(os.path.join(output_dir, 'chart_district_risk_scatter.html'))
+
     print(f"Visualizations saved to {output_dir}")
 
 if __name__ == "__main__":

@@ -27,6 +27,26 @@
     *   *Analysis*: Identify "School Rush" spikes (June-Aug) and anomalies in `rejected` applications (if data permits) or extreme volume spikes.
 *   **Winning Argument**: "Static resources cannot solve dynamic problems. This Heatmap tells you exactly where to move 'Mobile Aadhaar Vans' *before* the queue starts."
 
+## Phase 2: Critical Improvements (The "Expert" Polish)
+Based on your feedback, we are adding a rigor layer:
+
+### 1. Data Hygiene (The Foundation)
+*   **Problem**: Garbage data (`?', '100000'`) and inconsistent spellings (`Ahmednagar` vs `Ahmadnagar`) skew results.
+*   **Fix**: Implement `normalize_districts()` function to clean string variations and drop numeric/invalid rows.
+
+### 2. Logic Correction (The CLCS Formula)
+*   **Problem**: Comparing `Bio Updates` (Age 5-17) to `New Enrolments` (Age 0-5) is a cohort mismatch.
+*   **Fix**: New Formula = `Bio Updates (5-17) / Total Child Activity (0-17)`. This represents the "Share of Children Vitality". Low share = Dormant/At-risk population.
+
+### 3. State-Level Intelligence
+*   **Problem**: District view is too granular for national policy.
+*   **Fix**: Aggregate `SPS` and `CRS` to the **State Level** to answer: "Which State is the biggest bottleneck?"
+
+### 4. Visual Impact
+*   **Additions**:
+    *   **India Choropleth**: State-wise heat map.
+    *   **Trend Compounding**: Time-series line charts to show growth velocity.
+
 ## Technology Stack
 *   **Data Analysis**: Python (Pandas)
 *   **Visualization**: Plotly (Interactive Maps & Charts)
