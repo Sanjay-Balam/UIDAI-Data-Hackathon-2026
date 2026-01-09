@@ -1,0 +1,21 @@
+# Data Files
+*.csv
+*.zip
+*.rar
+
+# System Files
+.DS_Store
+__pycache__/
+*.pyc
+
+# Virtual Environment
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+
+# Output directories (optional, but good if we want to re-run)
+# visualizations/ # Keeping visualizations as they are small HTMLs and useful results
