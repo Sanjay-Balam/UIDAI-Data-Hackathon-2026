@@ -5,34 +5,19 @@ from data_loader import load_and_merge_data, clean_column_names
 from cleaning_utils import normalize_state_names, normalize_district_names
 
 def calculate_pillars(base_path):
-    print("=" * 60)
-    print("🚀 AADHAAR PULSE 2.0 - Analysis Pipeline")
-    print("=" * 60)
+    print("--- Loading Data for Phase 3 Remediation ---")
     
-    # --- STEP 0: LOAD DATA ---
-    print("\n📂 Loading Data...")
+    # Load
     bio_df = clean_column_names(load_and_merge_data(base_path, "api_data_aadhar_biometric/*.csv"))
     demo_df = clean_column_names(load_and_merge_data(base_path, "api_data_aadhar_demographic/*.csv"))
     enrol_df = clean_column_names(load_and_merge_data(base_path, "api_data_aadhar_enrolment/*.csv"))
     
-    print(f"   Raw counts - Bio: {len(bio_df):,}, Demo: {len(demo_df):,}, Enrol: {len(enrol_df):,}")
-    
     # --- STEP 1: DEEP CLEANING (P0 Fix) ---
-    print("\n🧹 Performing Deep Data Cleaning...")
+    print("Performing Deep Data Cleaning (State/District Normalization)...")
     
-    # FIX: Properly reassign the cleaned DataFrames (not just loop variable)
-    bio_df = normalize_state_names(bio_df)
-    bio_df = normalize_district_names(bio_df)
-    
-    demo_df = normalize_state_names(demo_df)
-    demo_df = normalize_district_names(demo_df)
-    
-    enrol_df = normalize_state_names(enrol_df)
-    enrol_df = normalize_district_names(enrol_df)
-    
-    print(f"   Clean counts - Bio: {len(bio_df):,}, Demo: {len(demo_df):,}, Enrol: {len(enrol_df):,}")
-    print(f"   Unique States: {enrol_df['state'].nunique()}")
-    print(f"   Unique Districts: {enrol_df['district'].nunique()}")
+    for df in [bio_df, demo_df, enrol_df]:
+        df = normalize_state_names(df)
+        df = normalize_district_names(df)
         
     # Re-map District to State (using Mode to fix 'Adilabad' double-state issue)
     # We create a master copy of district-state mapping from the Enrolment data (usually most gold standard)
@@ -114,8 +99,6 @@ def calculate_pillars(base_path):
     district_monthly_total['season_type'] = district_monthly_total['month'].apply(tag_season)
     
     # --- EXPORT ---
-    print("\n📊 Compiling Results...")
-    
     results = pd.DataFrame({
         'total_volume': total_vol,
         'active_pincodes': active_pins,
@@ -127,9 +110,6 @@ def calculate_pillars(base_path):
     }).reset_index()
     
     results = results.merge(dist_state_map, on='district', how='left')
-    
-    # Remove any rows where state mapping failed (shouldn't happen after cleaning)
-    results = results[results['state'].notna()]
     results = results.fillna(0)
     
     # Aggregate State
@@ -137,40 +117,18 @@ def calculate_pillars(base_path):
         'total_volume': 'sum',
         'active_pincodes': 'sum',
         'child_updates_5_17': 'sum',
-        'total_child_activity': 'sum',
-        'district': 'count'  # Number of districts per state
+        'total_child_activity': 'sum'
     }).reset_index()
-    state_results = state_results.rename(columns={'district': 'num_districts'})
     
-    # Calculate State-level metrics
     state_results['sps_score'] = state_results['total_volume'] / state_results['active_pincodes'].replace(0, 1)
     state_results['compliance_share'] = state_results['child_updates_5_17'] / state_results['total_child_activity'].replace(0, 1)
-    
-    # Add State Z-Score
-    state_mean = state_results['compliance_share'].mean()
-    state_std = state_results['compliance_share'].std()
-    state_results['clcs_zscore'] = (state_results['compliance_share'] - state_mean) / state_std
     
     # Save
     results.to_csv(os.path.join(base_path, 'aadhaar_pulse_district_clean.csv'), index=False)
     state_results.to_csv(os.path.join(base_path, 'aadhaar_pulse_state_clean.csv'), index=False)
     district_monthly_total.to_csv(os.path.join(base_path, 'aadhaar_pulse_trends_clean.csv'), index=False)
     
-    # Print Summary
-    print("\n" + "=" * 60)
-    print("✅ ANALYSIS COMPLETE!")
-    print("=" * 60)
-    print(f"   📁 District Results: {len(results):,} districts")
-    print(f"   📁 State Results: {len(state_results):,} states/UTs")
-    print(f"   📁 Monthly Trends: {len(district_monthly_total):,} data points")
-    print(f"\n   📈 Top 5 High-Pressure Districts (SAI):")
-    top_sps = results.nlargest(5, 'sps_score')[['district', 'state', 'sps_score']]
-    for _, row in top_sps.iterrows():
-        print(f"      - {row['district']} ({row['state']}): {row['sps_score']:.0f}")
-    print(f"\n   ⚠️ Top 5 At-Risk Districts (Low CLCS Z-Score):")
-    risk_districts = results[results['total_child_activity'] > 1000].nsmallest(5, 'clcs_zscore')[['district', 'state', 'clcs_zscore']]
-    for _, row in risk_districts.iterrows():
-        print(f"      - {row['district']} ({row['state']}): {row['clcs_zscore']:.2f}σ")
+    print("Phase 3 Analysis Complete. Data Cleaned & Z-Scores Calculated.")
 
 if __name__ == "__main__":
     BASE_PATH = "/Users/balamsanjay/Desktop/UDIAI-DataHackthon/"

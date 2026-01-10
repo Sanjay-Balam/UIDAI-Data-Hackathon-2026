@@ -86,118 +86,80 @@ def normalize_district_names(df):
     """
     Standardizes district names to fix duplicates.
     Fixes 'Bengaluru' vs 'Bangalore', 'North 24 Parganas', etc.
-    Uses lowercase matching for case-insensitivity.
     """
     if 'district' not in df.columns:
         return df
-    
-    df = df.copy()  # Avoid SettingWithCopyWarning
+        
     df = df.dropna(subset=['district'])
+    df['district'] = df['district'].astype(str).str.strip().str.title()
     
-    # 1. Normalize to lowercase for matching
-    df['district'] = df['district'].astype(str).str.strip().str.lower()
-    
-    # 2. Regex Cleaning (Remove extra spaces, dots)
+    # 1. Regex Cleaning (Remove extra spaces, dots)
     df['district'] = df['district'].replace(r'\s+', ' ', regex=True)
-    df['district'] = df['district'].replace(r'\.', '', regex=True)
+    df['district'] = df['district'].replace(r'\.', '', regex=True) # W.Godavari -> W Godavari
     
-    # 3. District Mapping (ALL LOWERCASE keys -> Proper Case values)
+    # 2. Hard-coded Duplication Fixes
     dist_map = {
-        # Karnataka - Bengaluru
-        'bangalore': 'Bengaluru Urban', 
-        'bangalore urban': 'Bengaluru Urban',
-        'bengaluru': 'Bengaluru Urban',
-        'bengaluru urban': 'Bengaluru Urban',
-        'bangalore rural': 'Bengaluru Rural',
-        'bengaluru rural': 'Bengaluru Rural',
-        'bengaluru south': 'Bengaluru Urban',
+        # Bengaluru
+        'Bangalore': 'Bengaluru Urban', 
+        'Bangalore Urban': 'Bengaluru Urban',
+        'Bengaluru': 'Bengaluru Urban',
+        'Bangalore Rural': 'Bengaluru Rural',
         
-        # Karnataka - Others
-        'belgaum': 'Belagavi', 'belagavi': 'Belagavi',
-        'gulbarga': 'Kalaburagi', 'kalaburagi': 'Kalaburagi',
-        'mysore': 'Mysuru', 'mysuru': 'Mysuru',
-        'shimoga': 'Shivamogga', 'shivamogga': 'Shivamogga',
-        'bijapur': 'Vijayapura', 'vijayapura': 'Vijayapura',
+        # Belagavi
+        'Belgaum': 'Belagavi', 'Belagavi': 'Belagavi',
         
-        # Maharashtra / Gujarat
-        'ahmed nagar': 'Ahmednagar', 'ahmadnagar': 'Ahmednagar', 'ahmednagar': 'Ahmednagar',
-        'ahilyanagar': 'Ahmednagar',
-        'ahmadabad': 'Ahmedabad', 'ahmedabad': 'Ahmedabad',
+        # Kalaburagi
+        'Gulbarga': 'Kalaburagi', 'Kalaburagi': 'Kalaburagi',
         
-        # West Bengal - Parganas
-        'north 24 parganas': 'North 24 Parganas',
-        'north twenty four parganas': 'North 24 Parganas',
-        '24 paraganas north': 'North 24 Parganas',
-        'south 24 parganas': 'South 24 Parganas',
-        'south twenty four parganas': 'South 24 Parganas',
-        '24 paraganas south': 'South 24 Parganas',
-        'south 24 pargana': 'South 24 Parganas',
+        # Mysuru
+        'Mysore': 'Mysuru', 'Mysuru': 'Mysuru',
         
-        # West Bengal - Bardhaman
-        'barddhaman': 'Bardhaman', 'bardhaman': 'Bardhaman',
-        'purba bardhaman': 'Purba Bardhaman', 
-        'paschim bardhaman': 'Paschim Bardhaman',
-        'purba medinipur': 'Purba Medinipur', 'paschim medinipur': 'Paschim Medinipur',
+        # Shivamogga
+        'Shimoga': 'Shivamogga', 'Shivamogga': 'Shivamogga',
         
-        # West Bengal - Others
-        'hooghly': 'Hooghly', 'hugli': 'Hooghly',
-        'coochbehar': 'Cooch Behar', 'cooch behar': 'Cooch Behar', 'koch bihar': 'Cooch Behar',
-        'dinajpur uttar': 'Uttar Dinajpur', 'uttar dinajpur': 'Uttar Dinajpur',
-        'dinajpur dakshin': 'Dakshin Dinajpur', 'dakshin dinajpur': 'Dakshin Dinajpur',
+        # Vijayapura
+        'Bijapur': 'Vijayapura', 'Vijayapura': 'Vijayapura', # Note: Bijapur also exists in Chhattisgarh! Need State context ideally.
+        # But usually in Aadhaar data, Karnataka volume dominates this name. We assume Karnataka for now.
+        
+        # Maharashtra
+        'Ahmed Nagar': 'Ahmednagar', 'Ahmadnagar': 'Ahmednagar',
+        'Ahmadabad': 'Ahmedabad', # Gujarat
+        
+        # West Bengal - The Parganas Nightmare
+        'North 24 Parganas': 'North 24 Parganas',
+        'North Twenty Four Parganas': 'North 24 Parganas',
+        '24 Paraganas North': 'North 24 Parganas',
+        'South 24 Parganas': 'South 24 Parganas',
+        'South Twenty Four Parganas': 'South 24 Parganas',
+        'Barddhaman': 'Bardhaman', 'Purba Bardhaman': 'Bardhaman', 'Paschim Bardhaman': 'Bardhaman', 
+        # (Merging Bardhaman split for historical consistency if needed, or keep separate if new)
         
         # Odisha
-        'angul': 'Angul', 'anugul': 'Angul',
-        'balasore': 'Balasore', 'baleshwar': 'Balasore',
+        'Angul': 'Anugul', 'Anugul': 'Anugul',
+        'Balasore': 'Baleshwar', 'Baleshwar': 'Baleshwar',
         
         # Telangana
-        'rangareddi': 'Rangareddy', 'kv rangareddy': 'Rangareddy', 'k v rangareddy': 'Rangareddy',
-        'ranga reddy': 'Rangareddy', 'rangareddy': 'Rangareddy',
-        'mahbubnagar': 'Mahabubnagar', 'mahaboobnagar': 'Mahabubnagar', 'mahabubnagar': 'Mahabubnagar',
-        'medchal-malkajgiri': 'Medchal Malkajgiri', 'medchal?malkajgiri': 'Medchal Malkajgiri',
+        'Rangareddi': 'Rangareddy', 'K.V.Rangareddy': 'Rangareddy', 'Ranga Reddy': 'Rangareddy',
+        'Mahbubnagar': 'Mahabubnagar', 'Mahaboobnagar': 'Mahabubnagar',
         
         # Tamil Nadu
-        'kancheepuram': 'Kanchipuram', 'kanchipuram': 'Kanchipuram',
-        'thiruvallur': 'Tiruvallur', 'tiruvallur': 'Tiruvallur',
-        'tuticorin': 'Thoothukudi', 'thoothukkudi': 'Thoothukudi', 'thoothukudi': 'Thoothukudi',
-        'tiruchirapalli': 'Tiruchirappalli', 'tiruchirappalli': 'Tiruchirappalli', 'trichy': 'Tiruchirappalli',
-        
-        # Andhra Pradesh
-        'spsr nellore': 'Nellore', 'nellore': 'Nellore',
-        'anantapur': 'Anantapur', 'ananthapuramu': 'Anantapur', 'ananthapur': 'Anantapur',
-        
-        # Bihar
-        'purbi champaran': 'East Champaran', 'east champaran': 'East Champaran',
-        'pashchimi champaran': 'West Champaran', 'west champaran': 'West Champaran',
-        
-        # Haryana
-        'gurugram': 'Gurugram', 'gurgaon': 'Gurugram',
-        'nuh': 'Nuh', 'mewat': 'Nuh',
-        
-        # UP
-        'siddharth nagar': 'Siddharthnagar', 'siddharthnagar': 'Siddharthnagar',
-        'allahabad': 'Prayagraj', 'prayagraj': 'Prayagraj',
-        
-        # MP
-        'ashoknagar': 'Ashoknagar', 'ashok nagar': 'Ashoknagar',
+        'Kancheepuram': 'Kanchipuram', 'Kanchipuram': 'Kanchipuram',
+        'Thiruvallur': 'Tiruvallur', 'Tiruvallur': 'Tiruvallur',
+        'Tuticorin': 'Thoothukkudi', 'Thoothukkudi': 'Thoothukkudi'
     }
     
-    # Apply mapping (keep original if not in map, but convert to title case)
-    def map_district(name):
-        if name in dist_map:
-            return dist_map[name]
-        # If not in map, convert to title case
-        return name.title()
+    # Context-aware replacement is hard without state column in the map function.
+    # For now, distinct names are mapped globally.
+    df['district'] = df['district'].map(lambda x: dist_map.get(x, x))
     
-    df['district'] = df['district'].apply(map_district)
-    
-    # 4. Garbage Removal - Filter out invalid districts
-    garbage_districts = {'100000', '5Th Cross', '5th Cross', '?', 'System', 'State', 'District', 'Akhera'}
-    
+    # 3. Garbage Removal
+    # Filter out numeric districts, "?", "5th Cross"
+    # Keep only if it has at least one letter and length > 2
     mask_valid = (
-        df['district'].str.contains(r'[a-zA-Z]', na=False) & 
+        df['district'].str.contains(r'[a-zA-Z]') & 
         (df['district'].str.len() > 2) & 
-        (~df['district'].str.match(r'^\d+$', na=False)) &
-        (~df['district'].isin(garbage_districts))
+        (~df['district'].str.contains(r'^\d+$')) &
+        (~df['district'].isin(['100000', '5th Cross', 'System']))
     )
     df = df[mask_valid]
     
