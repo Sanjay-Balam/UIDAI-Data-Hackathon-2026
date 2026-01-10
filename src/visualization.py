@@ -24,38 +24,61 @@ def generate_visualizations(base_path):
     output_dir = os.path.join(base_path, 'visualizations')
     os.makedirs(output_dir, exist_ok=True)
     
-    # --- 1. India Map (State Level) using CLEANED Names ---
-    print("Generating Clean Maps...")
+    # --- 1. India Map (State Level) with Complete Boundaries (incl. J&K, Ladakh) ---
+    print("Generating Clean Maps with Complete India Boundaries...")
+    
+    # GeoJSON includes J&K and Ladakh
     geojson_url = "https://gist.githubusercontent.com/jbrobst/56c13bbbf9d97d187fea01ca62ea5112/raw/e388c4cae20aa53cb5090210a42ebb9b765c0a36/india_states.geojson"
+    india_states = None
+    
     try:
         with urllib.request.urlopen(geojson_url) as url:
             india_states = json.loads(url.read().decode())
-    except:
-        print("GeoJSON Error. Skipping.")
-        india_states = None
+        print("   Loaded complete India GeoJSON (with J&K, Ladakh)")
+    except Exception as e:
+        print(f"   GeoJSON Error: {e}")
 
     if india_states:
-        # Map 1: CLCS Z-Score (The Remediation)
-        # Green = Positive Z-Score (Good Compliance Share)
-        # Red = Negative Z-Score (Lagging Behind National Avg)
-        
         # Calculate State Z-Score dynamically for the map
         state_mean = state_df['compliance_share'].mean()
         state_std = state_df['compliance_share'].std()
         state_df['z_score'] = (state_df['compliance_share'] - state_mean) / state_std
         
+        # Map state names to GeoJSON ST_NM property names
+        state_name_map = {
+            'Andaman & Nicobar Islands': 'Andaman & Nicobar',
+            'Dadra & Nagar Haveli': 'Dadra and Nagar Haveli and Daman and Diu',
+            'Daman & Diu': 'Dadra and Nagar Haveli and Daman and Diu',
+        }
+        state_df['state_geo'] = state_df['state'].map(lambda x: state_name_map.get(x, x))
+        
         fig_map_clcs = px.choropleth(
             state_df,
             geojson=india_states,
             featureidkey='properties.ST_NM',
-            locations='state',
+            locations='state_geo',
             color='z_score',
             color_continuous_scale='RdYlGn', 
-            range_color=[-2, 2], # Cap outlines at +/- 2 STD
+            range_color=[-2, 2],
             title='State Compliance Z-Score (Deviation from National Avg)',
-            template='plotly_dark'
+            template='plotly_dark',
+            hover_name='state'
         )
-        fig_map_clcs.update_geos(fitbounds="locations", visible=False)
+        
+        # Use lat/lon bounds to ensure J&K and Ladakh are visible
+        fig_map_clcs.update_geos(
+            visible=False,
+            fitbounds="locations",
+            projection_type="natural earth"
+        )
+        fig_map_clcs.update_layout(
+            height=800, 
+            margin=dict(l=0, r=0, t=50, b=0),
+            geo=dict(
+                lonaxis_range=[68, 98],  # Longitude range for India
+                lataxis_range=[6, 38],   # Latitude range including J&K and Ladakh
+            )
+        )
         fig_map_clcs.write_html(os.path.join(output_dir, 'map_state_clcs_zscore.html'))
 
     # --- 2. Seasonality Trend ---
