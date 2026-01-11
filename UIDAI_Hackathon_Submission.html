@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Aadhaar Pulse 2.0 - UIDAI Data Hackathon 2026</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px;
+            line-height: 1.6;
+            color: #333;
+        }
+        h1 { color: #1a5f7a; border-bottom: 3px solid #1a5f7a; padding-bottom: 10px; }
+        h2 { color: #2c3e50; margin-top: 40px; border-left: 4px solid #1a5f7a; padding-left: 15px; }
+        h3 { color: #34495e; }
+        table { border-collapse: collapse; width: 100%; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #1a5f7a; color: white; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .highlight { background-color: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0; }
+        .insight { background-color: #d4edda; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #28a745; }
+        .warning { background-color: #f8d7da; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #dc3545; }
+        code { background-color: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-family: monospace; }
+        pre { background-color: #2d2d2d; color: #f8f8f2; padding: 15px; border-radius: 5px; overflow-x: auto; }
+        img { max-width: 100%; height: auto; margin: 20px 0; border: 1px solid #ddd; border-radius: 5px; }
+        .page-break { page-break-after: always; }
+        .center { text-align: center; }
+        .metric-box { display: inline-block; padding: 20px; margin: 10px; background: linear-gradient(135deg, #1a5f7a, #2c3e50); color: white; border-radius: 10px; text-align: center; min-width: 150px; }
+        .metric-value { font-size: 2em; font-weight: bold; }
+        .metric-label { font-size: 0.9em; opacity: 0.9; }
+    </style>
+</head>
+<body>
+
+<div class="center">
+    <h1>🏛️ Aadhaar Pulse 2.0</h1>
+    <h2 style="border:none; color: #666;">Unlocking Societal Trends in Aadhaar Enrolment and Updates</h2>
+    <p><strong>UIDAI Data Hackathon 2026</strong></p>
+    <p>January 2026</p>
+</div>
+
+<hr>
+
+<h2>Executive Summary</h2>
+
+<p><strong>Aadhaar Pulse 2.0</strong> treats India's identity ecosystem as a living sensor of socio-economic dynamics. By analyzing enrolment and update patterns across <strong>10 months</strong> and <strong>36 states</strong>, we derive actionable intelligence for service optimization, child welfare protection, and resource allocation.</p>
+
+<div class="center">
+    <div class="metric-box">
+        <div class="metric-value">5M+</div>
+        <div class="metric-label">Records Processed</div>
+    </div>
+    <div class="metric-box">
+        <div class="metric-value">36</div>
+        <div class="metric-label">States/UTs</div>
+    </div>
+    <div class="metric-box">
+        <div class="metric-value">59K</div>
+        <div class="metric-label">Peak SPS (Delhi)</div>
+    </div>
+</div>
+
+<div class="page-break"></div>
+
+<h2>1. Problem Statement</h2>
+
+<div class="highlight">
+    <strong>Official Problem Statement:</strong><br>
+    "Identify meaningful patterns, trends, anomalies, or predictive indicators and translate them into clear insights or solution frameworks that can support informed decision-making and system improvements."
+</div>
+
+<h3>Our Interpretation: Three Critical Questions</h3>
+
+<table>
+    <tr>
+        <th>Question</th>
+        <th>Current Gap</th>
+        <th>Our Solution</th>
+    </tr>
+    <tr>
+        <td><strong>WHERE</strong> should UIDAI open new centers?</td>
+        <td>Know center locations, not if overloaded</td>
+        <td>Service Pressure Score (SPS)</td>
+    </tr>
+    <tr>
+        <td><strong>WHICH</strong> children are at risk?</td>
+        <td>No district-level risk visibility</td>
+        <td>Child Compliance Z-Score</td>
+    </tr>
+    <tr>
+        <td><strong>WHEN</strong> to deploy resources?</td>
+        <td>Static allocation year-round</td>
+        <td>Seasonality Detection</td>
+    </tr>
+</table>
+
+<h2>2. Datasets Used</h2>
+
+<table>
+    <tr>
+        <th>Dataset</th>
+        <th>Records</th>
+        <th>Columns</th>
+        <th>Description</th>
+    </tr>
+    <tr>
+        <td>Enrolment</td>
+        <td>1,006,029</td>
+        <td>date, state, district, pincode, age_0_5, age_5_17, age_18_greater</td>
+        <td>New Aadhaar registrations</td>
+    </tr>
+    <tr>
+        <td>Demographic</td>
+        <td>2,071,700</td>
+        <td>date, state, district, pincode, demo_age_5_17, demo_age_17_</td>
+        <td>Address/name updates</td>
+    </tr>
+    <tr>
+        <td>Biometric</td>
+        <td>1,861,108</td>
+        <td>date, state, district, pincode, bio_age_5_17, bio_age_17_</td>
+        <td>Fingerprint/iris updates</td>
+    </tr>
+</table>
+
+<p><strong>Date Range:</strong> March 2025 - December 2025 (10 months)</p>
+
+<div class="page-break"></div>
+
+<h2>3. Methodology</h2>
+
+<h3>3.1 Data Cleaning Pipeline</h3>
+
+<p><strong>Challenges Identified:</strong></p>
+<ul>
+    <li>State name variations (50+ variations → normalized to 36 official names)</li>
+    <li>District duplicates (Bengaluru/Bangalore, 24 Parganas variations)</li>
+    <li>Garbage data ("100000", "?", "5th cross" as district names)</li>
+</ul>
+
+<p><strong>Solution:</strong> Created <code>cleaning_utils.py</code> with normalization functions</p>
+
+<h3>3.2 Analysis Methods</h3>
+
+<table>
+    <tr>
+        <th>Pillar</th>
+        <th>Formula</th>
+        <th>Interpretation</th>
+    </tr>
+    <tr>
+        <td>SAI (Service Pressure)</td>
+        <td><code>SPS = Total Transactions / Active PIN Codes</code></td>
+        <td>High SPS = Overloaded service points</td>
+    </tr>
+    <tr>
+        <td>CLCS (Child Compliance)</td>
+        <td><code>Z = (District - Mean) / Std Dev</code></td>
+        <td>Z &lt; -1.5 = HIGH RISK</td>
+    </tr>
+    <tr>
+        <td>DIH (Seasonality)</td>
+        <td>Monthly volume analysis</td>
+        <td>June-Aug = School Rush</td>
+    </tr>
+</table>
+
+<div class="page-break"></div>
+
+<h2>4. Data Analysis & Visualizations</h2>
+
+<h3>4.1 Pillar 1: Service Accessibility Index (SAI)</h3>
+
+<p>The Service Pressure Score identifies districts where existing service points are overwhelmed.</p>
+
+<div class="center">
+    <img src="images/01_sai_top20.png" alt="Top 20 Districts by Service Pressure Score">
+    <p><em>Figure 1: Top 20 Districts by Service Pressure Score</em></p>
+</div>
+
+<div class="warning">
+    <strong>🔴 KEY FINDING:</strong> Delhi districts dominate the high-stress list!<br>
+    North East Delhi shows 59,000+ transactions per PIN code - critically overloaded.
+</div>
+
+<h3>4.2 Pillar 2: Child Lifecycle Compliance Score (CLCS)</h3>
+
+<p>Z-Score benchmarking identifies districts where children are falling behind on mandatory biometric updates.</p>
+
+<div class="center">
+    <img src="images/02_clcs_risk_scatter.png" alt="Child Compliance Risk Map">
+    <p><em>Figure 2: Child Compliance Risk Scatter Plot</em></p>
+</div>
+
+<div class="center">
+    <img src="images/03_state_compliance.png" alt="State Compliance Z-Score">
+    <p><em>Figure 3: Child Compliance Z-Score by State</em></p>
+</div>
+
+<div class="warning">
+    <strong>⚠️ KEY FINDING:</strong> Gujarat has a child compliance CRISIS!<br>
+    4 of top 5 at-risk districts are in Gujarat. Bihar's Pashchim Champaran is worst nationally.
+</div>
+
+<div class="page-break"></div>
+
+<h3>4.3 Pillar 3: Demand Intensity Heatmap (DIH)</h3>
+
+<p>Monthly pattern analysis reveals predictable "School Rush" seasonality.</p>
+
+<div class="center">
+    <img src="images/04_seasonality_trend.png" alt="Seasonality Trend">
+    <p><em>Figure 4: National Activity Volume by Month</em></p>
+</div>
+
+<div class="center">
+    <img src="images/05_demand_heatmap.png" alt="Demand Heatmap">
+    <p><em>Figure 5: Demand Intensity Heatmap (Top 15 Districts)</em></p>
+</div>
+
+<div class="insight">
+    <strong>💡 KEY FINDING:</strong> June-August shows "School Rush" pattern!<br>
+    Recommendation: Pre-position Mobile Aadhaar Vans 2 weeks before June.
+</div>
+
+<h3>4.4 Trivariate Analysis</h3>
+
+<div class="center">
+    <img src="images/06_trivariate_analysis.png" alt="Trivariate Analysis">
+    <p><em>Figure 6: Service Pressure vs Child Compliance by State</em></p>
+</div>
+
+<div class="page-break"></div>
+
+<h2>5. Summary & Recommendations</h2>
+
+<h3>Key Findings</h3>
+
+<table>
+    <tr>
+        <th>Finding</th>
+        <th>Impact</th>
+        <th>Recommendation</th>
+    </tr>
+    <tr>
+        <td>Delhi: 30K-59K transactions/PIN</td>
+        <td>Service bottleneck</td>
+        <td>Open 5+ new enrollment centers</td>
+    </tr>
+    <tr>
+        <td>Gujarat: 4 of top 5 at-risk districts</td>
+        <td>Child welfare crisis</td>
+        <td>Deploy School Aadhaar Camps</td>
+    </tr>
+    <tr>
+        <td>June-August: School Rush pattern</td>
+        <td>Predictable demand spike</td>
+        <td>Pre-deploy resources in May</td>
+    </tr>
+    <tr>
+        <td>Bihar's Pashchim Champaran worst</td>
+        <td>Compliance gap</td>
+        <td>Targeted awareness campaign</td>
+    </tr>
+</table>
+
+<h3>Actionable Recommendations</h3>
+
+<p><strong>Immediate (0-3 months):</strong></p>
+<ul>
+    <li>Deploy additional kits to Delhi's eastern divisions</li>
+    <li>Launch awareness campaign in Gujarat's at-risk districts</li>
+</ul>
+
+<p><strong>Short-term (3-6 months):</strong></p>
+<ul>
+    <li>Implement "School Rush Readiness" protocol for May deployment</li>
+    <li>Create child compliance dashboard for real-time monitoring</li>
+</ul>
+
+<p><strong>Long-term (6-12 months):</strong></p>
+<ul>
+    <li>Develop predictive model for resource allocation</li>
+    <li>Integrate with school admission systems for proactive updates</li>
+</ul>
+
+<div class="page-break"></div>
+
+<h2>6. Technical Implementation</h2>
+
+<h3>Technology Stack</h3>
+<ul>
+    <li><strong>Language:</strong> Python 3.x</li>
+    <li><strong>Data Processing:</strong> Pandas, NumPy</li>
+    <li><strong>Visualization:</strong> Plotly</li>
+    <li><strong>Analysis:</strong> Statistical Z-Score, Time Series</li>
+</ul>
+
+<h3>Code Structure</h3>
+<pre>
+UDIAI-DataHackthon/
+├── src/
+│   ├── data_loader.py      # Load & merge CSV files
+│   ├── cleaning_utils.py   # State/district normalization
+│   ├── analysis.py         # SAI, CLCS, DIH calculations
+│   └── export_images.py    # Generate visualizations
+├── notebooks/
+│   └── AadhaarPulse_Complete_Analysis.ipynb
+├── images/                 # Generated charts
+└── aadhaar_pulse_*.csv     # Processed output data
+</pre>
+
+<h3>GitHub Repository</h3>
+<p><a href="https://github.com/Sanjay-Balam/UIDAI-Data-Hackathon-2026">https://github.com/Sanjay-Balam/UIDAI-Data-Hackathon-2026</a></p>
+
+<hr>
+
+<div class="center">
+    <h2>Thank You!</h2>
+    <p><em>"Aadhaar Pulse 2.0 - Turning data into actionable intelligence for a more inclusive India."</em></p>
+</div>
+
+</body>
+</html>

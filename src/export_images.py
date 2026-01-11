@@ -8,8 +8,6 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import os
-import json
-import urllib.request
 
 def export_all_images(base_path: str):
     """Export all visualizations as PNG images."""
@@ -66,66 +64,38 @@ def export_all_images(base_path: str):
     fig_risk.write_image(os.path.join(img_dir, '02_clcs_risk_scatter.png'), scale=2)
     print("   ✅ Saved: 02_clcs_risk_scatter.png")
     
-    # --- 3. India Map ---
-    print("\n3️⃣ Exporting India Choropleth Map...")
+    # --- 3. State-wise Bar Chart (Replacing Map) ---
+    print("\n3️⃣ Exporting State Compliance Bar Chart...")
     
-    # Use GeoJSON that includes all states including Jammu & Kashmir and Ladakh
-    geojson_url = "https://gist.githubusercontent.com/jbrobst/56c13bbbf9d97d187fea01ca62ea5112/raw/e388c4cae20aa53cb5090210a42ebb9b765c0a36/india_states.geojson"
+    # Sort states by Z-score for better visualization
+    state_sorted = state_df.sort_values('clcs_zscore', ascending=True)
     
-    try:
-        with urllib.request.urlopen(geojson_url) as url:
-            india_states = json.loads(url.read().decode())
-        
-        # Map our state names to GeoJSON ST_NM property names
-        state_name_map = {
-            'Andaman & Nicobar Islands': 'Andaman & Nicobar',
-            'Dadra & Nagar Haveli': 'Dadra and Nagar Haveli and Daman and Diu',
-            'Daman & Diu': 'Dadra and Nagar Haveli and Daman and Diu',
-        }
-        
-        # Create a copy for mapping
-        map_df = state_df.copy()
-        map_df['state_geo'] = map_df['state'].map(lambda x: state_name_map.get(x, x))
-        
-        fig_map = px.choropleth(
-            map_df,
-            geojson=india_states,
-            featureidkey='properties.ST_NM',
-            locations='state_geo',
-            color='clcs_zscore',
-            color_continuous_scale='RdYlGn',
-            range_color=[-2, 2],
-            title='<b>India: Child Compliance Z-Score by State</b>',
-            template='plotly_white',
-            hover_name='state',
-            hover_data={'clcs_zscore': ':.2f', 'state_geo': False}
-        )
-        
-        # Use scope='asia' and center on India to show complete map including J&K
-        fig_map.update_geos(
-            visible=False,
-            resolution=50,
-            showcountries=False,
-            showcoastlines=False,
-            showland=False,
-            fitbounds="locations",
-            projection_type="natural earth"
-        )
-        
-        fig_map.update_layout(
-            height=900, 
-            width=750,
-            margin=dict(l=0, r=0, t=60, b=0),
-            geo=dict(
-                lonaxis_range=[68, 98],  # Longitude range for India
-                lataxis_range=[6, 38],   # Latitude range including J&K and Ladakh
-                projection_scale=1
-            )
-        )
-        fig_map.write_image(os.path.join(img_dir, '03_india_map_clcs.png'), scale=2)
-        print("   ✅ Saved: 03_india_map_clcs.png")
-    except Exception as e:
-        print(f"   ❌ Map export failed: {e}")
+    # Color based on risk level
+    state_sorted['risk_level'] = state_sorted['clcs_zscore'].apply(
+        lambda x: 'High Risk' if x < -1 else ('At Risk' if x < 0 else 'Good')
+    )
+    
+    fig_state = px.bar(
+        state_sorted,
+        x='clcs_zscore',
+        y='state',
+        color='risk_level',
+        orientation='h',
+        title='<b>Child Compliance Z-Score by State</b><br><sup>States below 0 are below national average</sup>',
+        labels={'clcs_zscore': 'Compliance Z-Score (σ)', 'state': 'State/UT'},
+        template='plotly_white',
+        color_discrete_map={
+            'High Risk': '#d62728',
+            'At Risk': '#ff7f0e', 
+            'Good': '#2ca02c'
+        },
+        height=800, width=900
+    )
+    fig_state.add_vline(x=0, line_dash="dash", line_color="gray", annotation_text="National Avg")
+    fig_state.add_vline(x=-1.5, line_dash="dash", line_color="red", annotation_text="Critical")
+    fig_state.update_layout(showlegend=True, yaxis={'categoryorder': 'total ascending'})
+    fig_state.write_image(os.path.join(img_dir, '03_state_compliance.png'), scale=2)
+    print("   ✅ Saved: 03_state_compliance.png")
     
     # --- 4. Seasonality Trend ---
     print("\n4️⃣ Exporting Seasonality Trend...")
